@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Phone Controller</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: sans-serif; margin: 2rem; background: #f8f9fa; color: #333; }
+    h1 { color: #222; }
+    ul { line-height: 1.6; }
+    span { font-weight: bold; }
+    .section { margin-top: 2rem; }
+  </style>
+</head>
+<body>
+
+  <h1>Connected! Move your phone.</h1>
+  <p>Num. of datapoints: <span id="num-observed-events">0</span></p>
+
+  <div class="section">
+    <h3>Orientation</h3>
+    <ul>
+      <li>Z (α): <span id="Orientation_a">0</span>°</li>
+      <li>X (β): <span id="Orientation_b">0</span>°</li>
+      <li>Y (γ): <span id="Orientation_g">0</span>°</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h3>Accelerometer</h3>
+    <ul>
+      <li>X: <span id="Accelerometer_x">0</span> m/s²</li>
+      <li>Y: <span id="Accelerometer_y">0</span> m/s²</li>
+      <li>Z: <span id="Accelerometer_z">0</span> m/s²</li>
+      <li>Interval: <span id="Accelerometer_i">0</span> ms</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h3>Accelerometer + Gravity</h3>
+    <ul>
+      <li>X: <span id="Accelerometer_gx">0</span> m/s²</li>
+      <li>Y: <span id="Accelerometer_gy">0</span> m/s²</li>
+      <li>Z: <span id="Accelerometer_gz">0</span> m/s²</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h3>Gyroscope</h3>
+    <ul>
+      <li>Z (α): <span id="Gyroscope_z">0</span> °/s</li>
+      <li>X (β): <span id="Gyroscope_x">0</span> °/s</li>
+      <li>Y (γ): <span id="Gyroscope_y">0</span> °/s</li>
+    </ul>
+  </div>
+
+  <script>
+    const socket = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host);
+    socket.onopen = () => console.log("✅ WebSocket connected");
+    socket.onerror = (e) => console.error("❌ WebSocket error", e);
+
+    let count = 0;
+    const updateCount = () => document.getElementById("num-observed-events").innerText = ++count;
+
+    const update = (id, val, precision = 2) => {
+      if (val != null) document.getElementById(id).innerText = val.toFixed(precision);
+    };
+
+    function handleOrientation(event) {
+      update("Orientation_a", event.alpha);
+      update("Orientation_b", event.beta);
+      update("Orientation_g", event.gamma);
+      updateCount();
+
+      socket.send(JSON.stringify({
+        type: "orientation",
+        alpha: event.alpha,
+        beta: event.beta,
+        gamma: event.gamma
+      }));
+    }
+
+    function handleMotion(event) {
+      update("Accelerometer_x", event.acceleration?.x);
+      update("Accelerometer_y", event.acceleration?.y);
+      update("Accelerometer_z", event.acceleration?.z);
+
+      update("Accelerometer_gx", event.accelerationIncludingGravity?.x);
+      update("Accelerometer_gy", event.accelerationIncludingGravity?.y);
+      update("Accelerometer_gz", event.accelerationIncludingGravity?.z);
+
+      update("Accelerometer_i", event.interval, 0);
+
+      update("Gyroscope_z", event.rotationRate?.alpha);
+      update("Gyroscope_x", event.rotationRate?.beta);
+      update("Gyroscope_y", event.rotationRate?.gamma);
+
+      updateCount();
+
+      socket.send(JSON.stringify({
+        type: "motion",
+        ax: event.acceleration?.x,
+        ay: event.acceleration?.y,
+        az: event.acceleration?.z,
+        agx: event.accelerationIncludingGravity?.x,
+        agy: event.accelerationIncludingGravity?.y,
+        agz: event.accelerationIncludingGravity?.z,
+        gx: event.rotationRate?.beta,
+        gy: event.rotationRate?.gamma,
+        gz: event.rotationRate?.alpha
+      }));
+    }
+
+    // iOS 13+ motion permission
+    async function requestSensorPermissions() {
+      try {
+        if (typeof DeviceMotionEvent.requestPermission === "function") {
+          const motion = await DeviceMotionEvent.requestPermission();
+          const orientation = await DeviceOrientationEvent.requestPermission();
+          if (motion === "granted" || orientation === "granted") {
+            console.log("✅ Sensor permissions granted");
+            window.addEventListener("devicemotion", handleMotion);
+            window.addEventListener("deviceorientation", handleOrientation);
+          } else {
+            alert("❌ Sensor permissions denied.");
+          }
+        } else {
+          // Non-iOS
+          window.addEventListener("devicemotion", handleMotion);
+          window.addEventListener("deviceorientation", handleOrientation);
+        }
+      } catch (err) {
+        console.error("Sensor permission error:", err);
+      }
+    }
+    
+    requestSensorPermissions();
+  </script>
+</body>
+</html>
