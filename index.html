@@ -4,15 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Phone Sensor Sender</title>
+  <style>Add commentMore actions
+    body { font-family: sans-serif; padding: 1rem; background: #111; color: #eee; }
+    h1 { font-size: 1.5rem; }
+    button { padding: 0.5rem 1rem; font-size: 1rem; margin-bottom: 1rem; }
+    .value { margin: 0.2rem 0; }
+  </style>
 </head>
 <body>
-  <h1>Phone Sensor WebSocket Test</h1>
+  <h1>Phone Sensor Controller Test</h1>
   <p>Events Observed: <span id="num-observed-events">0</span></p>
 
   <button onclick="requestSensorPermissions()">Enable Sensors</button>
 
   <script>
-    const socket = new WebSocket("wss://fruity-moments-float.loca.lt");
+    const socket = new WebSocket("wss://cyan-carrots-press.loca.lt");
 
     socket.onopen = () => console.log("✅ WebSocket connected");
     socket.onerror = (e) => console.error("❌ WebSocket error", e);
