@@ -1,53 +1,42 @@
+const http = require("http");
 const WebSocket = require("ws");
 const osc = require("osc");
 
-// === CONFIGURATION ===
-const WEBSOCKET_PORT = 8000;
-const OSC_ADDRESS = "192.168.86.28";
-const OSC_PORT = 8000;
+// WebSocket Server
+const server = http.createServer();
+const wss = new WebSocket.Server({ server });
 
-// === OSC SETUP ===
+// OSC UDP Port to Unreal
 const udpPort = new osc.UDPPort({
-  remoteAddress: OSC_ADDRESS,
-  remotePort: OSC_PORT,
-  metadata: false,
+  localAddress: "0.0.0.0",
+  localPort: 9000, // optional, can be anything unused
+  remoteAddress: "192.168.86.28",
+  remotePort: 8000
 });
 
 udpPort.open();
-udpPort.on("ready", () => {
-  console.log(`✅ OSC ready: Sending to ${OSC_ADDRESS}:${OSC_PORT}`);
-});
-
-// === WEBSOCKET SERVER ===
-const wss = new WebSocket.Server({ port: WEBSOCKET_PORT }, () => {
-  console.log(`🌐 WebSocket server listening on ws://localhost:${WEBSOCKET_PORT}`);
-});
 
 wss.on("connection", (ws) => {
-  console.log("📱 Phone connected");
+  console.log("✅ Phone connected via WebSocket");
 
-  ws.on("message", (msg) => {
+  ws.on("message", (message) => {
     try {
-      const data = JSON.parse(msg);
-
-      if (data.type === "orientation") {
-        // Example: Send orientation data to Unreal
+      const data = JSON.parse(message);
+      if (data.type === "motion" || data.type === "orientation") {
         udpPort.send({
-          address: "/device/orientation",
-          args: [
-            { type: "f", value: data.alpha || 0 },
-            { type: "f", value: data.beta || 0 },
-            { type: "f", value: data.gamma || 0 }
-          ]
+          address: `/sensor/${data.type}`,
+          args: Object.entries(data).filter(([k]) => k !== "type").map(([k, v]) => ({
+            type: "f",
+            value: parseFloat(v) || 0
+          }))
         });
       }
-
     } catch (err) {
-      console.error("⚠️ Error parsing message:", err);
+      console.error("❌ Failed to parse message:", err);
     }
   });
+});
 
-  ws.on("close", () => {
-    console.log("📴 Phone disconnected");
-  });
+server.listen(8000, "0.0.0.0", () => {
+  console.log("🌐 WebSocket server listening on port 8000");
 });

@@ -3,74 +3,66 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Phone Motion Controller</title>
-  <style>
-    body { font-family: sans-serif; padding: 1rem; background: #111; color: #eee; }
-    h1 { font-size: 1.5rem; }
-    button { padding: 0.5rem 1rem; font-size: 1rem; margin-bottom: 1rem; }
-    .value { margin: 0.2rem 0; }
-  </style>
+  <title>Phone Sensor Sender</title>
 </head>
 <body>
-  <h1>Phone Motion Controller</h1>
-  <button onclick="requestSensorPermissions()">Enable Sensors</button>
-  <div id="status">🔌 Connecting to WebSocket...</div>
+  <h1>Phone Sensor WebSocket Test</h1>
+  <p>Events Observed: <span id="num-observed-events">0</span></p>
 
-  <div class="value">Alpha: <span id="alpha">-</span></div>
-  <div class="value">Beta: <span id="beta">-</span></div>
-  <div class="value">Gamma: <span id="gamma">-</span></div>
+  <button onclick="requestSensorPermissions()">Enable Sensors</button>
 
   <script>
-    const socket = new WebSocket("ws://192.168.86.28:8000");
+    const socket = new WebSocket("wss://tender-owls-build.loca.lt");
 
-    socket.onopen = () => document.getElementById("status").innerText = "✅ WebSocket connected";
-    socket.onerror = (e) => {
-      console.error("❌ WebSocket error", e);
-      document.getElementById("status").innerText = "❌ WebSocket error";
-    };
+    socket.onopen = () => console.log("✅ WebSocket connected");
+    socket.onerror = (e) => console.error("❌ WebSocket error", e);
 
-    function update(id, val) {
-      if (val != null) document.getElementById(id).innerText = val.toFixed(2);
-    }
+    let count = 0;
+    const updateCount = () =>
+      document.getElementById("num-observed-events").innerText = ++count;
 
     function handleOrientation(event) {
-      update("alpha", event.alpha);
-      update("beta", event.beta);
-      update("gamma", event.gamma);
-
-      const data = {
+      updateCount();
+      socket.send(JSON.stringify({
         type: "orientation",
         alpha: event.alpha,
         beta: event.beta,
         gamma: event.gamma
-      };
+      }));
+    }
 
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(JSON.stringify(data));
-      }
+    function handleMotion(event) {
+      updateCount();
+      socket.send(JSON.stringify({
+        type: "motion",
+        ax: event.acceleration?.x,
+        ay: event.acceleration?.y,
+        az: event.acceleration?.z,
+        gx: event.rotationRate?.beta,
+        gy: event.rotationRate?.gamma,
+        gz: event.rotationRate?.alpha
+      }));
     }
 
     async function requestSensorPermissions() {
       try {
-        if (typeof DeviceMotionEvent?.requestPermission === "function") {
+        if (typeof DeviceMotionEvent.requestPermission === "function") {
           const motion = await DeviceMotionEvent.requestPermission();
           const orientation = await DeviceOrientationEvent.requestPermission();
           if (motion === "granted" || orientation === "granted") {
-            enableSensors();
+            window.addEventListener("devicemotion", handleMotion);
+            window.addEventListener("deviceorientation", handleOrientation);
           } else {
-            alert("❌ Permission denied.");
+            alert("❌ Sensor permissions denied.");
           }
         } else {
-          enableSensors(); // Non-iOS
+          // non-iOS
+          window.addEventListener("devicemotion", handleMotion);
+          window.addEventListener("deviceorientation", handleOrientation);
         }
       } catch (err) {
-        alert("❌ Error requesting permissions.");
-        console.error(err);
+        console.error("Sensor permission error:", err);
       }
-    }
-
-    function enableSensors() {
-      window.addEventListener("deviceorientation", handleOrientation);
     }
   </script>
 </body>
