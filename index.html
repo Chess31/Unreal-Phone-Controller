@@ -21,7 +21,7 @@
   <div class="value">Gamma: <span id="gamma">-</span></div>
 
   <script>
-    const socket = new WebSocket("ws://YOUR_PC_LOCAL_IP:8000");
+    const socket = new WebSocket("ws://192.168.86.28:8000");
 
     socket.onopen = () => document.getElementById("status").innerText = "✅ WebSocket connected";
     socket.onerror = (e) => {

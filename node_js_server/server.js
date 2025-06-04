@@ -3,13 +3,11 @@ const osc = require("osc");
 
 // === CONFIGURATION ===
 const WEBSOCKET_PORT = 8000;
-const OSC_ADDRESS = "127.0.0.1";
+const OSC_ADDRESS = "192.168.86.28";
 const OSC_PORT = 8000;
 
 // === OSC SETUP ===
 const udpPort = new osc.UDPPort({
-  localAddress: "0.0.0.0",
-  localPort: 57121,
   remoteAddress: OSC_ADDRESS,
   remotePort: OSC_PORT,
   metadata: false,
