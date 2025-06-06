@@ -18,7 +18,7 @@
   <button onclick="requestSensorPermissions()">Enable Sensors</button>
 
   <script>
-    const socket = new WebSocket("wss://mighty-suits-attend.loca.lt");
+    const socket = new WebSocket("wss://18.217.83.101:8000");
 
     socket.onopen = () => console.log("✅ WebSocket connected");
     socket.onerror = (e) => console.error("❌ WebSocket error", e);
