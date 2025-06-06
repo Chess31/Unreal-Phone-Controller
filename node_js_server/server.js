@@ -11,7 +11,7 @@ const wss = new WebSocket.Server({ server });
 const udpPort = new osc.UDPPort({
   localAddress: "0.0.0.0",
   localPort: 9000, // optional, can be anything unused
-  remoteAddress: "192.168.86.28",
+  remoteAddress: "192.168.86.30",
   remotePort: 8000
 });
 
