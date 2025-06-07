@@ -2,5 +2,25 @@
   "dependencies": {
     "osc": "^2.4.5",
     "ws": "^8.18.2"
-  }
+  },
+  "name": "unreal-phone-controller",
+  "version": "1.0.0",
+  "description": "Stores html for the SuperCanvas Unreal Engine project",
+  "main": "server.js",
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Chess31/Unreal-Phone-Controller.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Chess31/Unreal-Phone-Controller/issues"
+  },
+  "homepage": "https://github.com/Chess31/Unreal-Phone-Controller#readme"
 }
