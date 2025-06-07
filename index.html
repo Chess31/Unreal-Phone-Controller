@@ -17,59 +17,46 @@
 
   <button onclick="requestSensorPermissions()">Enable Sensors</button>
 
-  <script>
-    const socket = new WebSocket("wss://shy-apples-lead.loca.lt");
+<script>
+      const socket = new WebSocket("wss://silly-beds-flow.loca.lt");
+      socket.onopen = () => console.log("✅ WebSocket connected");
+      socket.onerror = (e) => console.error("❌ WebSocket error", e);
 
-    socket.onopen = () => console.log("✅ WebSocket connected");
-    socket.onerror = (e) => console.error("❌ WebSocket error", e);
+      let orientationSensor = null;
 
-    let count = 0;
-    const updateCount = () =>
-      document.getElementById("num-observed-events").innerText = ++count;
-
-    function handleOrientation(event) {
-      updateCount();
-      socket.send(JSON.stringify({
-        type: "orientation",
-        alpha: event.alpha,
-        beta: event.beta,
-        gamma: event.gamma
-      }));
-    }
-
-    function handleMotion(event) {
-      updateCount();
-      socket.send(JSON.stringify({
-        type: "motion",
-        ax: event.acceleration?.x,
-        ay: event.acceleration?.y,
-        az: event.acceleration?.z,
-        gx: event.rotationRate?.beta,
-        gy: event.rotationRate?.gamma,
-        gz: event.rotationRate?.alpha
-      }));
-    }
-
-    async function requestSensorPermissions() {
-      try {
-        if (typeof DeviceMotionEvent.requestPermission === "function") {
-          const motion = await DeviceMotionEvent.requestPermission();
-          const orientation = await DeviceOrientationEvent.requestPermission();
-          if (motion === "granted" || orientation === "granted") {
-            window.addEventListener("devicemotion", handleMotion);
-            window.addEventListener("deviceorientation", handleOrientation);
-          } else {
-            alert("❌ Sensor permissions denied.");
+      async function requestSensorPermissions() {
+        try {
+          if (typeof DeviceMotionEvent.requestPermission === "function") {
+            const motion = await DeviceMotionEvent.requestPermission();
+            const orientation = await DeviceOrientationEvent.requestPermission();
+            if (motion !== "granted" || orientation !== "granted") {
+              alert("❌ Sensor permissions denied");
+              return;
+            }
           }
-        } else {
-          // non-iOS
-          window.addEventListener("devicemotion", handleMotion);
-          window.addEventListener("deviceorientation", handleOrientation);
+
+          // Use Full-Tilt to get the orientation quaternion
+          orientationSensor = new FULLTILT.OrientationSensor({ type: "world" });
+          orientationSensor.start();
+
+          // Send quaternion data every 10ms
+          setInterval(() => {
+            const quaternion = orientationSensor.getQuaternion();
+            if (socket.readyState === WebSocket.OPEN && quaternion) {
+              socket.send(JSON.stringify({
+                type: "quaternion",
+                w: quaternion[0],
+                x: quaternion[1],
+                y: quaternion[2],
+                z: quaternion[3]
+              }));
+            }
+          }, 10);
+
+        } catch (err) {
+          console.error("Sensor permission error:", err);
         }
-      } catch (err) {
-        console.error("Sensor permission error:", err);
       }
-    }
-  </script>
-</body>
+    </script>
+  </body>
 </html>

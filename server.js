@@ -1,17 +1,20 @@
-//works as of 6/3/2025
 const http = require("http");
 const WebSocket = require("ws");
 const osc = require("osc");
 
-// WebSocket Server
-const server = http.createServer();
+// WebSocket Server with basic HTTP response
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { "Content-Type": "text/plain" });
+  res.end("WebSocket + OSC Server is running.\n");
+});
+
 const wss = new WebSocket.Server({ server });
 
 // OSC UDP Port to Unreal
 const udpPort = new osc.UDPPort({
   localAddress: "0.0.0.0",
-  localPort: 9000, // optional, can be anything unused
-  remoteAddress: "192.168.86.30",
+  localPort: 9000, // can be any unused port
+  remoteAddress: "192.168.86.30", // replace with your Unreal Engine machine IP
   remotePort: 8000
 });
 
@@ -23,13 +26,17 @@ wss.on("connection", (ws) => {
   ws.on("message", (message) => {
     try {
       const data = JSON.parse(message);
-      if (data.type === "motion" || data.type === "orientation") {
+
+      // Only process known types
+      if (["motion", "orientation", "quaternion"].includes(data.type)) {
         udpPort.send({
           address: `/sensor/${data.type}`,
-          args: Object.entries(data).filter(([k]) => k !== "type").map(([k, v]) => ({
-            type: "f",
-            value: parseFloat(v) || 0
-          }))
+          args: Object.entries(data)
+            .filter(([k]) => k !== "type")
+            .map(([_, v]) => ({
+              type: "f",
+              value: parseFloat(v) || 0
+            }))
         });
       }
     } catch (err) {
@@ -38,6 +45,7 @@ wss.on("connection", (ws) => {
   });
 });
 
-server.listen(8000, "0.0.0.0", () => {
-  console.log("🌐 WebSocket server listening on port 8000");
+const PORT = process.env.PORT || 8000;
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`🌐 WebSocket server listening on port ${PORT}`);
 });
