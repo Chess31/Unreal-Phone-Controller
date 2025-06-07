@@ -1,60 +1,61 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Phone Sensor Sender</title>
-  <style>Add commentMore actions
-    body { font-family: sans-serif; padding: 1rem; background: #111; color: #eee; }
-    h1 { font-size: 1.5rem; }
-    button { padding: 0.5rem 1rem; font-size: 1rem; margin-bottom: 1rem; }
-    .value { margin: 0.2rem 0; }
-  </style>
-</head>
-<body>
-  <h1>Phone Sensor Controller Test</h1>
-  <p>Events Observed: <span id="num-observed-events">0</span></p>
+<html>
+  <head>
+    <title>Phone Sensor to OSC</title>
+    <script src="https://unpkg.com/fulltilt"></script>
+  </head>
+  <body>
+    <h1>Sensor Data Streaming...</h1>
+    <button onclick="requestSensorPermissions()">Enable Sensors</button>
 
-  <button onclick="requestSensorPermissions()">Enable Sensors</button>
-
-<script>
-      const socket = new WebSocket("wss://silly-beds-flow.loca.lt");
+    <script>
+      const socket = new WebSocket("wss://shy-apples-lead.loca.lt");
       socket.onopen = () => console.log("✅ WebSocket connected");
       socket.onerror = (e) => console.error("❌ WebSocket error", e);
 
-      let orientationSensor = null;
+      let orientationSensor;
 
       async function requestSensorPermissions() {
         try {
-          if (typeof DeviceMotionEvent.requestPermission === "function") {
-            const motion = await DeviceMotionEvent.requestPermission();
-            const orientation = await DeviceOrientationEvent.requestPermission();
-            if (motion !== "granted" || orientation !== "granted") {
+          // iOS 13+ requires permission prompts
+          if (typeof DeviceMotionEvent?.requestPermission === "function") {
+            const motionPermission = await DeviceMotionEvent.requestPermission();
+            const orientationPermission = await DeviceOrientationEvent.requestPermission();
+
+            if (motionPermission !== "granted" || orientationPermission !== "granted") {
               alert("❌ Sensor permissions denied");
               return;
             }
           }
 
-          // Use Full-Tilt to get the orientation quaternion
+          // Initialize Full-Tilt orientation sensor
           orientationSensor = new FULLTILT.OrientationSensor({ type: "world" });
+
           orientationSensor.start();
 
-          // Send quaternion data every 10ms
+          // Start polling for quaternion data
           setInterval(() => {
+            if (!orientationSensor) return;
             const quaternion = orientationSensor.getQuaternion();
-            if (socket.readyState === WebSocket.OPEN && quaternion) {
-              socket.send(JSON.stringify({
-                type: "quaternion",
-                w: quaternion[0],
-                x: quaternion[1],
-                y: quaternion[2],
-                z: quaternion[3]
-              }));
+            if (
+              socket.readyState === WebSocket.OPEN &&
+              quaternion &&
+              quaternion.every((v) => typeof v === "number")
+            ) {
+              socket.send(
+                JSON.stringify({
+                  type: "quaternion",
+                  w: quaternion[0],
+                  x: quaternion[1],
+                  y: quaternion[2],
+                  z: quaternion[3],
+                })
+              );
             }
-          }, 10);
+          }, 100);
 
         } catch (err) {
-          console.error("Sensor permission error:", err);
+          console.error("❌ Sensor setup failed:", err);
         }
       }
     </script>
