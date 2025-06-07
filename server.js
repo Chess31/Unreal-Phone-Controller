@@ -4,11 +4,7 @@ const WebSocket = require("ws");
 const osc = require("osc");
 
 // WebSocket Server
-const server = http.createServer((req, res) => {
-  res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end("WebSocket + OSC Server is running.\n");
-});
-
+const server = http.createServer();
 const wss = new WebSocket.Server({ server });
 
 // OSC UDP Port to Unreal
@@ -42,7 +38,6 @@ wss.on("connection", (ws) => {
   });
 });
 
-const PORT = process.env.PORT || 8000;
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`🌐 WebSocket server listening on port ${PORT}`);
+server.listen(8000, "0.0.0.0", () => {
+  console.log("🌐 WebSocket server listening on port 8000");
 });
